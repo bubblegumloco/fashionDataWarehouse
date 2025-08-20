@@ -129,6 +129,49 @@ ADD CONSTRAINT fk_purchase_id FOREIGN KEY (purchase_id)
 REFERENCES silver_purchase_info(purchase_id);
 
 
+ALTER TABLE silver_product_info
+ADD COLUMN stock_status VARCHAR(20);
+
+
+SET SQL_SAFE_UPDATES = 0;
+
+# general case statement for updating stock status for existing rows 
+UPDATE silver_product_info
+SET stock_status = 
+	CASE 
+		WHEN stock_quantity < 30 THEN 'Low - Restock'
+        WHEN stock_quantity BETWEEN 30 AND 50 THEN 'Normal'
+        ELSE 'High'
+	END;
+
+SELECT * FROM silver_product_info;
+
+SET SQL_SAFE_UPDATES = 0;
+
+# Trigger automation when the stock is low 
+
+DELIMITER $$
+
+CREATE TRIGGER updateStock
+BEFORE INSERT ON silver_product_info
+FOR EACH ROW
+BEGIN 
+	IF NEW.stock_quantity < 30 THEN
+		SET NEW.stock_status = 'Low - Restock';
+	ELSEIF NEW.stock_quantity BETWEEN 30 AND 50 THEN 
+		SET NEW.stock_status = 'Normal';
+	ELSE 
+		SET NEW.stock_status = 'High';
+	END IF;
+END $$
+DELIMITER ;
+
+# Testing Trigger 
+
+INSERT INTO silver_product_info (product_id, category, brand, season, size, color, stock_quantity)
+VALUES('FB003000', 'Tops', 'Ann Taylor', 'Fall', 'L', 'Pink', 20);
+
+SELECT * FROM silver_product_info WHERE product_id = 'FB003000';
 
 
 
